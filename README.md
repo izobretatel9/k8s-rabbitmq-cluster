@@ -6,12 +6,11 @@
 
 1. Изменить под себя;
 2. Deploy делать через `Jenkins`;
-3. Раскатывать в любой кластер `k8s`;
-4. `Credentials` - прописать в Jenkins;
-5. `WERF_KUBE_CONTEXT` - поменять;
-6. `@Library('jenkins-devops@dev')_` - библиотека функции `Jenkins`.
+3. `Credentials` - прописать в Jenkins;
+4. `WERF_KUBE_CONTEXT` - поменять;
+5. `@Library('jenkins-devops@dev')_` - библиотека функции `Jenkins`.
 
-## Дполнительная информация: 
+## Дополнительная информация: 
 
 1. .helm\templates\03-grafana\rabbitmq.yaml - уже готовый `Dashboard` для `Grafana`
 
