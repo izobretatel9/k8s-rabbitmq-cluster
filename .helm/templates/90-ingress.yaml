@@ -1,0 +1,37 @@
+{{- range $_, $nginx := $.Values.nginx }}
+---
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    kubernetes.io/ingress.class: {{ tpl (pluck $.Values.global.env $nginx.controler | first | default $nginx.controler._default) $ }}
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: {{ tpl (pluck $.Values.global.env $nginx.proxy_body_size | first | default $nginx.proxy_body_size._default) $ }}
+    nginx.ingress.kubernetes.io/service-upstream: "true"
+{{- if eq $nginx.service.port "grpc-app"}}
+    nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      proxy_set_header X-Forwarded-Proto https;
+      proxy_set_header X-Forwarded-Ssl on;
+      grpc_set_header      Host        {{ $nginx.service.name }}.{{ $.Release.Namespace }}.svc.cluster.local;
+{{- else }}
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      proxy_set_header X-Forwarded-Proto https;
+      proxy_set_header X-Forwarded-Ssl on;
+{{- end }}
+  name: {{ $.Chart.Name }}-{{ $nginx.name }}
+spec:
+  tls:
+    - hosts:
+        - {{ tpl (pluck $.Values.global.env $nginx.domain | first | default $nginx.domain._default) $ }}
+      secretName: certs-tls-internal.k8s
+  rules:
+  - host: {{ tpl (pluck $.Values.global.env $nginx.domain | first | default $nginx.domain._default) $ }}
+    http:
+      paths:
+      - backend:
+          serviceName: {{ $nginx.service.name }}
+          servicePort: {{ $nginx.service.port }}
+        path: /
+{{- end }}

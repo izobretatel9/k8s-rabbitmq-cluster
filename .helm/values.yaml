@@ -1,0 +1,30 @@
+nginx:
+  - name: rabbitmq
+    controler:
+      _default: internal
+    proxy_body_size:
+      _default: "100m"
+    domain:
+      _default: "api-{{ $.Release.Namespace }}.xxx.com"
+      production: "api-rabbitmq.xxx.com"
+    service:
+      name: rabbitmq
+      port: http-app
+    
+rabbitmq:
+  image:
+    _default: "rabbitmq:3-management-alpine" #collection
+  pv:
+    storageclass:
+      _default: network-ssd # env
+    size:
+      _default: 10Gi # env
+  resources:
+    cpu:
+      requests:
+        _default: 1000m # env
+    memory:
+      requests:
+        _default: 2000Mi # env
+      limits:
+        _default: 4000Mi # env

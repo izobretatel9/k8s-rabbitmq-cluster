@@ -1,0 +1,149 @@
+{{- $image := pluck $.Values.global.env $.Values.image | first | default $.Values.image._default }}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: {{ $.Chart.Name }}
+  name: {{ $.Chart.Name }}
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: {{ $.Chart.Name }}
+  serviceName: {{ $.Chart.Name }}-internal
+  template:
+    metadata:
+      labels:
+        app: {{ $.Chart.Name }}
+      annotations:
+        sidecar.istio.io/inject: "false"
+        checksum/configmap: {{ include (print $.Template.BasePath "/11-config.yaml") $ | sha256sum }}
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app: {{ $.Chart.Name }}
+              topologyKey: kubernetes.io/hostname
+            weight: 100
+      serviceAccountName: {{ $.Chart.Name }}
+      terminationGracePeriodSeconds: 30
+      imagePullSecrets:
+      - name: cr.yandex
+      containers:
+      - name: rabbitmq
+        image: {{ $image }}
+        imagePullPolicy: Always
+        env:
+        - name: MY_POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: HOSTNAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: RABBITMQ_USE_LONGNAME
+          value: "true"
+        - name: RABBITMQ_NODENAME
+          value: "rabbit@$(HOSTNAME).{{ $.Chart.Name }}-internal.{{ $.Release.Namespace }}.svc.cluster.local"
+        - name: K8S_SERVICE_NAME
+          value: "{{ $.Chart.Name }}-internal"
+        - name: RABBITMQ_ERLANG_COOKIE
+          value: "mycookie"
+        ports:
+        - containerPort: 5672
+          name: rabbit-app
+          protocol: TCP
+        - containerPort: 15672
+          name: http-app
+          protocol: TCP
+        - containerPort: 15692
+          name: http-metrics
+          protocol: TCP
+        volumeMounts:
+        - name: {{ $.Chart.Name }}-data
+          mountPath: /var/lib/rabbitmq/mnesia/
+        - name: config
+          mountPath: /etc/rabbitmq
+        livenessProbe:
+          exec:
+            command: ["rabbitmqctl", "status"]
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 10
+      volumes:
+        - name: config
+          configMap:
+            name: {{ $.Chart.Name }}
+            items:
+            - key: rabbitmq.conf
+              path: rabbitmq.conf
+            - key: enabled_plugins
+              path: enabled_plugins
+  volumeClaimTemplates:
+  - metadata:
+      name: {{ $.Chart.Name }}-data
+    spec:
+      accessModes: [ ReadWriteOnce ]
+      storageClassName: {{ pluck $.Values.global.env $.Values.pv.storageclass | first | default $.Values.pv.storageclass._default }}
+      resources:
+        requests:
+          storage: {{ pluck $.Values.global.env $.Values.pv.size | first | default $.Values.pv.size._default }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $.Chart.Name }}
+  labels:
+    prometheus.deckhouse.io/custom-target: {{ $.Chart.Name }}
+  annotations:
+    prometheus.deckhouse.io/port: "15692"
+    prometheus.deckhouse.io/path: "/metrics"
+    prometheus.deckhouse.io/query-param-format: "prometheus"
+    prometheus.deckhouse.io/allow-unready-pod: "true"
+    prometheus.deckhouse.io/sample-limit: "50000"
+
+spec:
+  selector:
+    app: {{ $.Chart.Name }}
+  type: ClusterIP
+  ports:
+  - name: rabbit-app
+    port: 5672
+    protocol: TCP
+  - name: http-app
+    port: 15672
+    protocol: TCP
+  - name: http-metrics
+    port: 15692
+    protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $.Chart.Name }}-internal
+spec:
+  selector:
+    app: {{ $.Chart.Name }}
+  clusterIP: None
+  ports:
+  - name: rabbit-app
+    port: 5672
+    protocol: TCP
+  - name: http-app
+    port: 15672
+    protocol: TCP
+  - port: 4369
+    name: epmd
+    protocol: TCP
+  - port: 25672
+    name: rabbitmq-dist
+    protocol: TCP
