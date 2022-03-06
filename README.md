@@ -22,3 +22,6 @@
 login = guest  
 password = guest 
 ```
+# P.s.
+### Разработано под "`Deckhouse Kubernetes platform`"
+https://deckhouse.io/en/
