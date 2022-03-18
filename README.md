@@ -1,26 +1,26 @@
-# Описание
+# Description
 
-`RabbitMQ` — программный брокер сообщений на основе стандарта AMQP — тиражируемое связующее программное обеспечение, ориентированное на обработку сообщений. Создан на основе системы Open Telecom Platform, написан на языке Erlang, в качестве движка базы данных для хранения сообщений использует Mnesia.
+`RabbitMQ` — AMQP-based messaging software broker is a replicable message-oriented middleware. Created on the basis of the Open Telecom Platform system, written in the Erlang language, it uses Mnesia as a database engine for storing messages.
 
-## Инструкция по применению: 
+## Instructions for use: 
 
-1. Изменить под себя;
-2. Deploy делать через `Jenkins`;
-3. `Credentials` - прописать в Jenkins;
-4. `WERF_KUBE_CONTEXT` - поменять;
-5. `@Library('jenkins-devops@dev')_` - библиотека функции `Jenkins`.
+1. Change for yourself;
+2. Deploy do through `Jenkins`;
+3. `Credentials` - prescribe in Jenkins;
+4. `WERF_KUBE_CONTEXT` - change;
+5. `@Library('jenkins-devops@dev')_` - function library `Jenkins`.
 
-## Дополнительная информация: 
+## Additional Information: 
 
-1. .helm\templates\03-grafana\rabbitmq.yaml - уже готовый `Dashboard` для `Grafana`
+1. .helm\templates\03-grafana\rabbitmq.yaml - ready `Dashboard` in `Grafana`
 
-    Был взят из источника https://grafana.com/grafana/dashboards/10991
+    Was taken from the source https://grafana.com/grafana/dashboards/10991
 
-2. Вход в дефолтную админку:
+2. Default admin login:
 ```
 login = guest  
 password = guest 
 ```
 ## P.s.
-Разработано под "`Deckhouse Kubernetes platform`"
+Designed for "`Deckhouse Kubernetes platform`"
 https://deckhouse.io/en/

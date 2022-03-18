@@ -2,9 +2,10 @@
 
 properties([
   parameters([
-    choice(      name: 'TYPE',              choices: ['converge', 'dismiss'],
-                                            defaultValue: 'converge',           description: 'TYPE of run Deploy or Dismis packages'),
-    string(      name: 'SERVICE',           defaultValue: 'rabbitmq',           description: 'Name of Service (also namespace too)'),
+    choice(      name: 'TYPE',              choices:     ['converge', 
+                                                          'dismiss'],
+                                            defaultValue: 'converge',        description: 'TYPE of run Deploy or Dismis packages'),
+    string(      name: 'SERVICE',           defaultValue: 'rabbitmq',        description: 'Name of Service (also namespace too)'),
   ])
 ])
 
@@ -12,14 +13,16 @@ pipeline {
   agent { label 'werf' }
 
   environment {
-//  WERF_REPO               = "cr.yandex/xxxxxxxx/${params.SERVICE}" // if necessary
-//  WERF_STAGES_STORAGE     = "cr.yandex/xxxxxxxx/${params.SERVICE}/stages" // if necessary
-    WERF_TMP_DIR            = '/home/jenkins/tmp/'
-    WERF_HOME               = '/home/jenkins/tmp/.werf/'
+    WERF_TMP_DIR                = '/home/jenkins/tmp/'
+    WERF_HOME                   = '/home/jenkins/tmp/.werf/'
+    WERF_IMAGES_REPO_MODE       = "monorepo"
+    
+    YC_REGISTRY                 = 'cr.yandex/xxxxxxxxx'
+    AWS_REGISTRY                = 'xxxxxxxxx.amazonaws.com'
+    WERF_STAGES_STORAGE         = "cr.yandex/xxxxxxxxx/${params.SERVICE}/stages"
 
-//  YC_AUTH                 = credentials("ya_key") // if necessary
-    KUBECONFIG              = credentials('werf_kube_config')
-    WERF_SECRET_KEY         = credentials("werf_secret_key")
+    YC_AUTH                     = credentials("ya_registry_key")
+    KUBECONFIG                  = credentials('werf_kube_config')
   }
 
   stages {
@@ -34,7 +37,7 @@ pipeline {
           sh 'export'
         }
         script{
-            functions.loginYCRegistry("${YC_AUTH}")
+          functions.loginYCRegistry("${YC_AUTH}", "${YC_REGISTRY}")
         }
       }
     }
@@ -42,10 +45,11 @@ pipeline {
       when {
         anyOf { branch 'dev'; }
       }
-      environment { 
+      environment {   
+        WERF_IMAGES_REPO      = "${YC_REGISTRY}/${params.SERVICE}"
         WERF_NAMESPACE        = "${params.SERVICE}"
         WERF_ENV              = "dev"
-        WERF_KUBE_CONTEXT     = "dev" // change
+        WERF_KUBE_CONTEXT     = "dev"
       }
       steps {
         script {
@@ -53,14 +57,31 @@ pipeline {
         }
       }
     }
-    stage("PROD") {
+    stage("PROD YC") {
+      when {
+        anyOf { branch 'master'; }
+      }
+      environment {
+        WERF_IMAGES_REPO      = "${YC_REGISTRY}/${params.SERVICE}"
+        WERF_NAMESPACE        = "${params.SERVICE}"
+        WERF_ENV              = "production"
+        WERF_KUBE_CONTEXT     = "production"
+      }
+      steps {
+        script {
+          functions.runWerf("${params.TYPE}")
+        }
+      }
+    }
+    stage("PROD AWS") {
       when {
         anyOf { branch 'master'; }
       }
       environment { 
+		    WERF_IMAGES_REPO      = "${AWS_REGISTRY}/${params.SERVICE}"
         WERF_NAMESPACE        = "${params.SERVICE}"
-        WERF_ENV              = "production"
-        WERF_KUBE_CONTEXT     = "production" // change
+        WERF_ENV              = "aws-production"
+        WERF_KUBE_CONTEXT     = "aws-production"
       }
       steps {
         script {
