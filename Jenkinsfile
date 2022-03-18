@@ -78,7 +78,7 @@ pipeline {
         anyOf { branch 'master'; }
       }
       environment { 
-		    WERF_IMAGES_REPO      = "${AWS_REGISTRY}/${params.SERVICE}"
+	WERF_IMAGES_REPO      = "${AWS_REGISTRY}/${params.SERVICE}"
         WERF_NAMESPACE        = "${params.SERVICE}"
         WERF_ENV              = "aws-production"
         WERF_KUBE_CONTEXT     = "aws-production"
