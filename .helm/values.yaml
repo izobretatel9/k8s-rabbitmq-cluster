@@ -24,7 +24,7 @@ rabbitmq:
   resources:
     cpu:
       requests:
-        _default: 1000m # env
+        _default: 500m # env
     memory:
       requests:
         _default: 2000Mi # env
