@@ -10,27 +10,25 @@ properties([
 ])
 
 pipeline {
-  agent { label 'werf' }
+  agent { label 'multiwerf' }
 
   environment {
     WERF_TMP_DIR                = '/home/jenkins/tmp/'
     WERF_HOME                   = '/home/jenkins/tmp/.werf/'
     WERF_IMAGES_REPO_MODE       = "monorepo"
     
-    YC_REGISTRY                 = 'cr.yandex/xxxxxxxxx'
-    AWS_REGISTRY                = 'xxxxxxxxx.amazonaws.com'
-    WERF_STAGES_STORAGE         = "cr.yandex/xxxxxxxxx/${params.SERVICE}/stages"
+    YC_REGISTRY                 = 'cr.yandex/xxxxxxxx'
+    AWS_REGISTRY                = 'xxxx.amazonaws.com'
+    WERF_STAGES_STORAGE         = "cr.yandex/xxxxxxxx/${params.SERVICE}/stages"
 
     YC_AUTH                     = credentials("ya_registry_key")
     KUBECONFIG                  = credentials('werf_kube_config')
+
+    AWS_ACCESS_KEY_ID           = credentials('aws_access_key_id')
+    AWS_SECRET_ACCESS_KEY       = credentials('aws_secret_access_key')
   }
 
   stages {
-    stage('Checkout') {
-      steps {
-        checkout scm
-      }
-    }
     stage("Prerequisites") {
       steps {
         script {
@@ -38,6 +36,9 @@ pipeline {
         }
         script{
           functions.loginYCRegistry("${YC_AUTH}", "${YC_REGISTRY}")
+        script {
+          functions.loginAWSRegistry("${AWS_ACCESS_KEY_ID}", "${AWS_SECRET_ACCESS_KEY}", "${params.SERVICE}", "${AWS_REGISTRY}")
+          }
         }
       }
     }
@@ -47,6 +48,7 @@ pipeline {
       }
       environment {   
         WERF_IMAGES_REPO      = "${YC_REGISTRY}/${params.SERVICE}"
+
         WERF_NAMESPACE        = "${params.SERVICE}"
         WERF_ENV              = "dev"
         WERF_KUBE_CONTEXT     = "dev"
@@ -63,6 +65,7 @@ pipeline {
       }
       environment {
         WERF_IMAGES_REPO      = "${YC_REGISTRY}/${params.SERVICE}"
+
         WERF_NAMESPACE        = "${params.SERVICE}"
         WERF_ENV              = "production"
         WERF_KUBE_CONTEXT     = "production"
@@ -78,10 +81,11 @@ pipeline {
         anyOf { branch 'master'; }
       }
       environment { 
-	WERF_IMAGES_REPO      = "${AWS_REGISTRY}/${params.SERVICE}"
-        WERF_NAMESPACE        = "${params.SERVICE}"
-        WERF_ENV              = "aws-production"
-        WERF_KUBE_CONTEXT     = "aws-production"
+		    WERF_IMAGES_REPO       = "${AWS_REGISTRY}/${params.SERVICE}"
+
+        WERF_NAMESPACE         = "${params.SERVICE}"
+        WERF_ENV               = "aws-production"
+        WERF_KUBE_CONTEXT      = "aws-production"
       }
       steps {
         script {

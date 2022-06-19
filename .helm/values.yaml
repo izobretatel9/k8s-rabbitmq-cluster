@@ -5,9 +5,9 @@ nginx:
     proxy_body_size:
       _default: "100m"
     domain:
-      _default: "api-{{ $.Release.Namespace }}.xxx.ru"
-      production: "api-rabbitmq.xxx.ru"
-      aws-production: "api-rabbitmq.xxx.com"
+      _default: "api-{{ $.Release.Namespace }}.internal.k8s.xxx.ru"
+      production: "api-rabbitmq.internal.k8s.xxx.ru"
+      aws-production: "api-rabbitmq.internal.k8s.xxx.com"
     service:
       name: rabbitmq
       port: http-app
@@ -18,7 +18,7 @@ rabbitmq:
   pv:
     storageclass:
       _default: network-ssd # env
-      aws-production: gp2 # ecr on AWS
+      aws-production: gp3
     size:
       _default: 10Gi # env
   resources:
@@ -27,6 +27,6 @@ rabbitmq:
         _default: 500m # env
     memory:
       requests:
-        _default: 2000Mi # env
+        _default: 4000Mi # env
       limits:
         _default: 4000Mi # env
